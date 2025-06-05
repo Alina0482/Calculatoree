@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <title>Калькулятор</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3367D6">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <button id="install" class="button" hidden>Установить на телефон</button>
+    <div class="container">
+        <div class="screen" id="display">0</div>
+        
+        <button class="button bnum">7</button>
+        <button class="button bnum">8</button>
+        <button class="button bnum">9</button>
+        <button class="button func bC">C</button>
+        <button class="button func bCE">CE</button>
+        
+        <button class="button bnum">4</button>
+        <button class="button bnum">5</button>
+        <button class="button bnum">6</button>
+        <button class="button deist bplus">+</button>
+        <button class="button deist bmin">-</button>
+        
+        <button class="button bnum">1</button>
+        <button class="button bnum">2</button>
+        <button class="button bnum">3</button>
+        <button class="button deist bmul">×</button>
+        <button class="button deist bdiv">÷</button>
+        
+        <button class="button b0 bnum">0</button>
+        <button class="button bpoint">.</button>
+        <button class="button beq">=</button>
+        <button class="button func bMS">MS</button>
+        <button class="button func bMR">MR</button>
+    </div>
+
+    <script>
+        // Логика калькулятора
+        class Calculator {
+            constructor() {
+                this.currentValue = '0';
+                this.previousValue = null;
+                this.operation = null;
+                this.memory = 0;
+                this.display = document.getElementById('display');
+                this.setupEventListeners();
+                this.updateDisplay();
+            }
+
+            updateDisplay() {
+                this.display.textContent = this.currentValue;
+            }
+
+            clear() {
+                this.currentValue = '0';
+                this.previousValue = null;
+                this.operation = null;
+                this.updateDisplay();
+            }
+
+            clearEntry() {
+                this.currentValue = '0';
+                this.updateDisplay();
+            }
+
+            appendNumber(number) {
+                if (number === '.' && this.currentValue.includes('.')) return;
+                if (this.currentValue === '0' && number !== '.') {
+                    this.currentValue = number;
+                } else {
+                    this.currentValue += number;
+                }
+                this.updateDisplay();
+            }
+
+            setOperation(op) {
+                if (this.currentValue === '0' && this.previousValue === null) return;
+                
+                if (this.operation !== null) {
+                    this.calculate();
+                }
+                
+                this.operation = op;
+                this.previousValue = this.currentValue;
+                this.currentValue = '0';
+            }
+
+            calculate() {
+                let result;
+                const prev = parseFloat(this.previousValue);
+                const current = parseFloat(this.currentValue);
+                
+                if (isNaN(prev)) return;
+                
+                switch (this.operation) {
+                    case '+':
+                        result = prev + current;
+                        break;
+                    case '-':
+                        result = prev - current;
+                        break;
+                    case '×':
+                        result = prev * current;
+                        break;
+                    case '÷':
+                        result = prev / current;
+                        break;
+                    default:
+                        return;
+                }
+                
+                this.currentValue = result.toString();
+                this.operation = null;
+                this.previousValue = null;
+                this.updateDisplay();
+            }
+
+            memoryStore() {
+                this.memory = parseFloat(this.currentValue);
+            }
+
+            memoryRecall() {
+                this.currentValue = this.memory.toString();
+                this.updateDisplay();
+            }
+
+            setupEventListeners() {
+                document.querySelectorAll('.bnum').forEach(button => {
+                    button.addEventListener('click', () => {
+                        this.appendNumber(button.textContent);
+                    });
+                });
+
+                document.querySelectorAll('.deist').forEach(button => {
+                    button.addEventListener('click', () => {
+                        this.setOperation(button.textContent);
+                    });
+                });
+
+                document.querySelector('.beq').addEventListener('click', () => {
+                    this.calculate();
+                });
+
+                document.querySelector('.bC').addEventListener('click', () => {
+                    this.clear();
+                });
+
+                document.querySelector('.bCE').addEventListener('click', () => {
+                    this.clearEntry();
+                });
+
+                document.querySelector('.bMS').addEventListener('click', () => {
+                    this.memoryStore();
+                });
+
+                document.querySelector('.bMR').addEventListener('click', () => {
+                    this.memoryRecall();
+                });
+
+                document.querySelector('.bpoint').addEventListener('click', () => {
+                    this.appendNumber('.');
+                });
+            }
+        }
+
+        // Инициализация калькулятора при загрузке страницы
+        window.onload = () => {
+            new Calculator();
+
+            // PWA установка
+            let installPrompt = null;
+            const installButton = document.getElementById('install');
+
+            window.addEventListener('beforeinstallprompt', (event) => {
+                event.preventDefault();
+                installPrompt = event;
+                installButton.hidden = false;
+            });
+
+            installButton.addEventListener('click', async () => {
+                if (!installPrompt) return;
+                const result = await installPrompt.prompt();
+                console.log(`Install prompt result: ${result.outcome}`);
+                installPrompt = null;
+                installButton.hidden = true;
+            });
+
+            window.addEventListener('appinstalled', () => {
+                installPrompt = null;
+                installButton.hidden = true;
+            });
+
+            // Регистрация Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('serviceworker.js')
+                    .then(registration => console.log('ServiceWorker registered'))
+                    .catch(err => console.log('ServiceWorker registration failed: ', err));
+            }
+        };
+    </script>
+</body>
+</html>
